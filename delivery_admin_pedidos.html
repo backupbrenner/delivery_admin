@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Painel Admin - Delivery</title>
+  <style>
+    :root{
+      --bg:#f7f7f8;
+      --card:#ffffff;
+      --text:#1f2937;
+      --muted:#6b7280;
+      --brand:#ea580c;
+      --brand-soft:#fff7ed;
+      --line:#e5e7eb;
+      --shadow:0 10px 28px rgba(0,0,0,.06);
+      --radius:18px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:Arial,Helvetica,sans-serif;
+      background:linear-gradient(180deg,#fff7ed 0%, #f8fafc 45%);
+      color:var(--text);
+    }
+    .wrap{
+      max-width:1100px;
+      margin:0 auto;
+      padding:24px;
+    }
+    .topbar{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:16px;
+      flex-wrap:wrap;
+      margin-bottom:20px;
+    }
+    h1{
+      margin:0;
+      font-size:30px;
+    }
+    .sub{
+      color:var(--muted);
+      margin-top:6px;
+      font-size:14px;
+    }
+    .btn{
+      border:none;
+      background:var(--brand);
+      color:#fff;
+      padding:12px 18px;
+      border-radius:12px;
+      cursor:pointer;
+      font-weight:700;
+      font-size:14px;
+    }
+    .btn:hover{filter:brightness(.98)}
+    .empty,
+    .loading{
+      background:var(--card);
+      border-radius:var(--radius);
+      padding:24px;
+      text-align:center;
+      box-shadow:var(--shadow);
+      border:1px solid var(--line);
+      color:var(--muted);
+    }
+    .grid{
+      display:grid;
+      gap:16px;
+    }
+    .card{
+      background:var(--card);
+      border-radius:22px;
+      padding:18px;
+      box-shadow:var(--shadow);
+      border:1px solid #fed7aa;
+    }
+    .row{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:16px;
+      flex-wrap:wrap;
+    }
+    .muted{color:var(--muted)}
+    .small{font-size:13px}
+    .status{
+      display:inline-block;
+      padding:7px 12px;
+      border-radius:999px;
+      background:var(--brand-soft);
+      color:#9a3412;
+      font-size:12px;
+      font-weight:700;
+      border:1px solid #fdba74;
+    }
+    .total{
+      margin-top:8px;
+      font-size:20px;
+      font-weight:700;
+      text-align:right;
+    }
+    .items{
+      margin-top:14px;
+      padding-top:14px;
+      border-top:1px solid var(--line);
+    }
+    .item{
+      padding:10px 0;
+      border-bottom:1px solid #f3f4f6;
+    }
+    .item:last-child{border-bottom:none}
+    .meta{
+      display:grid;
+      gap:6px;
+      margin-top:12px;
+      font-size:14px;
+    }
+    .pill{
+      display:inline-block;
+      padding:6px 10px;
+      border-radius:999px;
+      background:#fff;
+      border:1px solid var(--line);
+      font-size:12px;
+      margin-right:6px;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div>
+        <h1>Painel Admin - Pedidos</h1>
+        <div class="sub">Lista de pedidos recebidos pelo sistema delivery</div>
+      </div>
+      <button class="btn" onclick="carregarPedidos()">Atualizar</button>
+    </div>
+
+    <div id="app" class="loading">Carregando pedidos...</div>
+  </div>
+
+  <script>
+    const API_BASE = "https://api.meun8n-server.duckdns.org";
+
+    function formatBRL(v){
+      return new Intl.NumberFormat("pt-BR", {
+        style: "currency",
+        currency: "BRL"
+      }).format(Number(v || 0));
+    }
+
+    function formatDate(v){
+      if(!v) return "-";
+      const d = new Date(v);
+      if (isNaN(d)) return v;
+      return d.toLocaleString("pt-BR");
+    }
+
+    async function carregarPedidos() {
+      const app = document.getElementById("app");
+      app.className = "loading";
+      app.innerHTML = "Carregando pedidos...";
+
+      try {
+        const res = await fetch(`${API_BASE}/api/orders`);
+        const pedidos = await res.json();
+
+        if (!res.ok) {
+          throw new Error(pedidos.error || "Erro ao carregar pedidos");
+        }
+
+        if (!Array.isArray(pedidos) || pedidos.length === 0) {
+          app.className = "empty";
+          app.innerHTML = "Nenhum pedido encontrado.";
+          return;
+        }
+
+        app.className = "grid";
+        app.innerHTML = pedidos.map(pedido => `
+          <div class="card">
+            <div class="row">
+              <div>
+                <strong>Pedido #${pedido.id}</strong>
+                <div class="small muted" style="margin-top:6px">Criado em: ${formatDate(pedido.created_at)}</div>
+                <div class="meta">
+                  <div><strong>Cliente:</strong> ${pedido.cliente_nome || "-"}</div>
+                  <div><strong>Telefone:</strong> ${pedido.cliente_telefone || "-"}</div>
+                  <div><strong>Entrega:</strong> ${pedido.tipo_entrega || "-"}</div>
+                  <div><strong>Endereço:</strong> ${pedido.endereco || "-"} ${pedido.bairro ? " - " + pedido.bairro : ""}</div>
+                  <div><strong>Referência:</strong> ${pedido.referencia || "-"}</div>
+                </div>
+              </div>
+              <div style="text-align:right">
+                <div class="status">${pedido.status || "PENDENTE"}</div>
+                <div class="total">${formatBRL(pedido.total)}</div>
+              </div>
+            </div>
+
+            <div class="items">
+              <strong>Itens do pedido</strong>
+              <div style="margin-top:10px">
+                ${(pedido.itens || []).length === 0 ? `
+                  <div class="small muted">Sem itens encontrados.</div>
+                ` : (pedido.itens || []).map(item => `
+                  <div class="item">
+                    <div class="row">
+                      <div>
+                        <strong>${item.quantidade}x ${item.nome}</strong>
+                        ${item.observacao ? `<div class="small muted" style="margin-top:4px">Obs: ${item.observacao}</div>` : ``}
+                      </div>
+                      <div><span class="pill">${formatBRL(item.preco)}</span></div>
+                    </div>
+                  </div>
+                `).join("")}
+              </div>
+            </div>
+          </div>
+        `).join("");
+      } catch (err) {
+        console.error(err);
+        app.className = "empty";
+        app.innerHTML = `Erro ao carregar pedidos.<br><br><span class="small">${err.message}</span>`;
+      }
+    }
+
+    carregarPedidos();
+  </script>
+</body>
+</html>
