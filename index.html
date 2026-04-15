@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Painel Admin - Delivery</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f7f7f7;
+      color: #222;
+    }
+    .wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    h1 {
+      margin-top: 0;
+    }
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    button {
+      border: none;
+      background: #ea580c;
+      color: white;
+      padding: 10px 16px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 8px 20px rgba(0,0,0,.06);
+    }
+    .row {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .muted {
+      color: #666;
+      font-size: 14px;
+    }
+    .items {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid #eee;
+    }
+    .item {
+      padding: 8px 0;
+      border-bottom: 1px solid #f1f1f1;
+    }
+    .status {
+      display: inline-block;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: #fff7ed;
+      color: #9a3412;
+      font-size: 12px;
+      font-weight: bold;
+    }
+    .empty {
+      background: white;
+      padding: 24px;
+      border-radius: 16px;
+      text-align: center;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <h1>Painel Admin - Pedidos</h1>
+      <button onclick="carregarPedidos()">Atualizar</button>
+    </div>
+
+    <div id="app">
+      <div class="empty">Carregando pedidos...</div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = "https://api.meun8n-server.duckdns.org";
+
+    async function carregarPedidos() {
+      const app = document.getElementById("app");
+      app.innerHTML = `<div class="empty">Carregando pedidos...</div>`;
+
+      try {
+        const res = await fetch(`${API_BASE}/api/orders`);
+        const pedidos = await res.json();
+
+        if (!Array.isArray(pedidos) || pedidos.length === 0) {
+          app.innerHTML = `<div class="empty">Nenhum pedido encontrado.</div>`;
+          return;
+        }
+
+        app.innerHTML = pedidos.map(pedido => `
+          <div class="card">
+            <div class="row">
+              <div>
+                <strong>Pedido #${pedido.id}</strong>
+                <div class="muted">Cliente: ${pedido.cliente_nome || "-"}</div>
+                <div class="muted">Telefone: ${pedido.cliente_telefone || "-"}</div>
+              </div>
+              <div style="text-align:right">
+                <div class="status">${pedido.status || "PENDENTE"}</div>
+                <div style="margin-top:8px"><strong>R$ ${Number(pedido.total || 0).toFixed(2)}</strong></div>
+              </div>
+            </div>
+
+            <div style="margin-top:12px" class="muted">
+              ${pedido.tipo_entrega || "-"} · ${pedido.endereco || "-"} · ${pedido.bairro || "-"}
+            </div>
+
+            <div class="muted" style="margin-top:6px">
+              Referência: ${pedido.referencia || "-"}
+            </div>
+
+            <div class="items">
+              <strong>Itens</strong>
+              ${(pedido.itens || []).map(item => `
+                <div class="item">
+                  ${item.quantidade}x ${item.nome} — R$ ${Number(item.preco || 0).toFixed(2)}
+                  ${item.observacao ? `<div class="muted">Obs: ${item.observacao}</div>` : ""}
+                </div>
+              `).join("")}
+            </div>
+          </div>
+        `).join("");
+      } catch (err) {
+        app.innerHTML = `<div class="empty">Erro ao carregar pedidos.</div>`;
+        console.error(err);
+      }
+    }
+
+    carregarPedidos();
+  </script>
+</body>
+</html>
