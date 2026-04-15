@@ -1,0 +1,9 @@
+version: "3.8"
+
+services:
+  delivery-admin:
+    build: .
+    container_name: delivery-admin
+    restart: unless-stopped
+    ports:
+      - "8086:80"
